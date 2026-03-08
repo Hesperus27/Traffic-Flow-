@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Flow</title>
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        body {
+            font-family: Arial;
+            background: linear-gradient(135deg, #0f172a, #1e3a8a);
+            color: #f1f5f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #38bdf8;
+        }
+
+        .wrap {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .box {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            width: 350px;
+        }
+
+        input {
+            width: 70%;
+            padding: 8px;
+            background: #0f172a;
+            border: 1px solid #38bdf8;
+            color: white;
+        }
+
+        .btn {
+            padding: 8px 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .b-add {
+            background: #22c55e;
+            color: white;
+        }
+
+        .b-edit {
+            background: #eab308;
+            color: black;
+        }
+
+        .b-del {
+            background: #ef4444;
+            color: white;
+        }
+
+        .b-clr {
+            background: #ef4444;
+            color: white;
+            margin-top: 8px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: #334155;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid #475569;
+            padding: 10px 6px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        th {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        td:nth-child(2) {
+            text-align: left;
+            padding-left: 10px;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .map {
+            height: 200px;
+            border: 2px solid #38bdf8;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .map iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>TRAFFIC FLOW</h2>
+
+    <div class="wrap">
+        <div class="box">
+            <h3>Traffic Map</h3>
+            <div class="map">
+                <iframe src="https://maps.google.com/maps?q=iloilo%20city&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
+            </div>
+
+            <h3>Report Traffic</h3>
+            <input id="alertInput" placeholder="Report accident or congestion">
+            <button class="btn b-add" onclick="addAlert()">Add</button>
+
+            <ul id="alertList"></ul>
+            <button class="btn b-clr" onclick="clearAlerts()">Clear All</button>
+        </div>
+
+        <div class="box">
+            <h3>Traffic History</h3>
+            <div style="overflow-x:auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Report</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tb"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = () => {
+            showHistory();
+        }
+
+        function addAlert() {
+            let input = document.getElementById("alertInput");
+            let msg = input.value.trim();
+            if (msg === "") return;
+
+            let data = JSON.parse(localStorage.getItem("traffic_logs")) || [];
+            data.push({
+                id: Date.now(),
+                time: new Date().toLocaleTimeString(),
+                report: msg,
+                status: "Active"
+            });
+            localStorage.setItem("traffic_logs", JSON.stringify(data));
+            input.value = "";
+            showHistory();
+        }
+
+        function showHistory() {
+            let data = JSON.parse(localStorage.getItem("traffic_logs")) || [];
+            let body = document.getElementById("tb");
+            let list = document.getElementById("alertList");
+
+            body.innerHTML = "";
+            list.innerHTML = "";
+
+            data.forEach(item => {
+                body.innerHTML += `
+                <tr>
+                    <td>${item.time}</td>
+                    <td>${item.report}</td>
+                    <td>${item.status}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn b-edit" onclick="editAlert(${item.id})">Edit</button>
+                            <button class="btn b-del" onclick="deleteAlert(${item.id})">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+                list.innerHTML += `<li>${item.report} (${item.time})</li>`;
+            });
+        }
+
+        function editAlert(id) {
+            let data = JSON.parse(localStorage.getItem("traffic_logs"));
+            let index = data.findIndex(x => x.id === id);
+            let newMsg = prompt("Update traffic report:", data[index].report);
+            if (newMsg) {
+                data[index].report = newMsg;
+                localStorage.setItem("traffic_logs", JSON.stringify(data));
+                showHistory();
+            }
+        }
+
+        function deleteAlert(id) {
+            let data = JSON.parse(localStorage.getItem("traffic_logs"));
+            data = data.filter(x => x.id !== id);
+            localStorage.setItem("traffic_logs", JSON.stringify(data));
+            showHistory();
+        }
+
+        function clearAlerts() {
+            if (confirm("Clear all traffic alerts?")) {
+                localStorage.removeItem("traffic_logs");
+                showHistory();
+            }
+        }
+
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker
+                .register("/service-worker.js")
+                .then(() => { console.log("ayos! rehistro as service worker"); })
+                .catch((error) => { console.log("Registration failed: ", error); });
+        }
+    </script>
+</body>
+
+                  </html>
